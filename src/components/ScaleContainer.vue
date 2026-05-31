@@ -2,8 +2,9 @@
  * @ScaleContainer 自适应缩放容器
  *
  * @设计原理
- * 以设计稿宽高为基准，根据容器实际宽高计算缩放比，通过 CSS transform 统一缩放
- * 子组件内容。使用 cover 模式（取 Math.max）确保填满容器、不出现黑边。
+ * 以设计稿宽高为基准，根据容器实际宽高分别计算 X/Y 缩放比，
+ * 通过 CSS transform scale(sx, sy) 独立缩放子组件内容，
+ * 始终填满容器、无黑边，内容宽高比可能与设计稿不一致。
  *
  * @最小尺寸保护
  * 当容器尺寸 ≤ minWidth / minHeight 时，有效尺寸不再缩小，缩放比锁定。
@@ -24,9 +25,9 @@
  * @props {number}  [minHeight]  — 最小高度阈值（px），到达后停止缩小
  *
  * @provide {ScaleContainerContext} scaleContainer — 缩放上下文
- *   - scale: number        当前缩放比
- *   - scaleX: number       横向缩放比
- *   - scaleY: number       纵向缩放比
+ *   - scale: number        当前缩放比（取 Math.max(scaleX, scaleY)）
+ *   - scaleX: number       横向缩放比（容器宽 / 设计稿宽）
+ *   - scaleY: number       纵向缩放比（容器高 / 设计稿高）
  *   - containerRect        容器原始尺寸 { width, height }
  *
  * @slot default — 需要缩放的子内容（接收 slot props: { scale, scaleX, scaleY }）
@@ -78,9 +79,11 @@ const contentStyle = computed(() => ({
   position: 'absolute' as const,
   left: '50%',
   top: '50%',
-  transform: `translate(-50%, -50%) scale(${scale.value})`,
+  transform: `translate(-50%, -50%) scale(${scaleX.value}, ${scaleY.value})`,
   transformOrigin: 'center center',
   overflow: 'hidden',
+  // 只对 transform 做过渡，避免窗口缩放时突变
+  transition: 'transform 0.3s ease-out',
 }))
 
 // ============================================================================
@@ -93,15 +96,7 @@ const contentStyle = computed(() => ({
  * 1. 取容器实际宽高 rawW / rawH
  * 2. 若设置了 minWidth / minHeight，有效宽高取两者中的较大值
  *    即：容器缩到阈值以下时，停止继续缩小
- * 3. cover 模式：scale = Math.max(effW / designW, effH / designH)
- *
- * ┌─────────────────────────────────────────────────────────────────────┐
- * │ 视口宽高比 > 设计稿宽高比（视口更「宽」）                           │
- * │   → 以高度为基准缩放，宽度方向溢出（左右被裁切）—— 无黑边          │
- * ├─────────────────────────────────────────────────────────────────────┤
- * │ 视口宽高比 < 设计稿宽高比（视口更「高」）                           │
- * │   → 以宽度为基准缩放，高度方向溢出（上下被裁切）—— 无黑边          │
- * └─────────────────────────────────────────────────────────────────────┘
+ * 3. 分别计算 X/Y 缩放比，内容会被拉伸以填满容器、无黑边
  */
 function calcScale(): void {
   if (!containerRef.value) return
