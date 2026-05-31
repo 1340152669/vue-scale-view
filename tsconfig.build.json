@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "dist",
+    "declarationDir": "dist",
+    "declarationMap": false,
+    "sourceMap": false
+  },
+  "include": [
+    "src/index.ts",
+    "src/types.ts",
+    "src/components/ScaleContainer.vue",
+    "src/composables/useScaleContainer.ts",
+    "src/shims-vue.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/demos/**"
+  ]
+}
